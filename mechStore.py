@@ -34,8 +34,8 @@ def redirect_scrape_return():
     browser.open(urlString)
 
 
-# This function checks is key:calue pair already exists,
-# If not, it calls the redirector fuction
+# This function checks is key:value pair already exists,
+# If not, it calls the redirector function
 def check_key_channel(dic, key):
     if key in dic:
         print(Style.BRIGHT + Fore.YELLOW + key + " : Already Exists")
@@ -88,7 +88,8 @@ urlStringNumberedPage = 'https://rumble.com/videos?sort=views&date=this-month&pa
 video_details = []
 
 # Rumble's first page is index 1 and the max amount of pages it shows is 100
-number_of_pages = 100
+# However, if we use just the top 50 pages, we get over 1000 results and mining is quicker
+number_of_pages = 50
 
 # channel will store {channel_name : channel_subscriber_count} K:V Pairs
 channel = {}
@@ -97,8 +98,7 @@ browser = mechanicalsoup.StatefulBrowser(soup_config={'features': 'lxml'})
 
 # Since videos are not all available on a single page,
 # we use a loop to scrape data from all pages
-# for page in range(1,(number_of_pages + 1)):
-for page in range(1, 6):
+for page in range(1, (number_of_pages + 1)):
     if page == 1:
         urlString = urlStringFirstPage
     else:
@@ -124,7 +124,7 @@ for page in range(1, 6):
                     make_append()
 
             # This is a check for a nasty surprise whitespace at the end of the string
-            # Where it doesnt belong (Caused problems before)
+            # Where it doesn't belong (Caused problems before)
             channel_name = str(item('div')[0].contents[0])
             if channel_name[-1] == " ":
                 channel_name = channel_name.rstrip()
