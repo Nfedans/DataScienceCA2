@@ -1,11 +1,13 @@
 from bs4 import BeautifulSoup
 import requests
 import pandas as pd
-import time
 import mechanicalsoup
 from colorama import Fore, Style
 
 
+# This function redirects to individual pages, scrapes subscriber count,
+# puts the subscriber count into the channel dictionary and
+# redirects back to the main page were scraping from
 def redirect_scrape_return():
     # This grabs the link endpoint which we will redirect to
     our_link = str(item('a')[1]['href'])
@@ -24,7 +26,7 @@ def redirect_scrape_return():
     btns = browser_soup.find_all('div', class_="constrained")[0].find('div', class_='listing-header--buttons')
 
     chname = btns('button')[0]['data-title']
-    if (chname[-1] == " "):
+    if chname[-1] == " ":
         chname = chname.rstrip()
 
     channel[chname] = [str(btns('span')[1].contents[0])]
@@ -32,6 +34,8 @@ def redirect_scrape_return():
     browser.open(urlString)
 
 
+# This function checks is key:calue pair already exists,
+# If not, it calls the redirector fuction
 def check_key_channel(dic, key):
     if key in dic:
         print(Style.BRIGHT + Fore.YELLOW + key + " : Already Exists")
@@ -40,40 +44,37 @@ def check_key_channel(dic, key):
         redirect_scrape_return()
 
 
-# Some videos show how much $ they earned while other videos do not
-# This function is used to append video data correctly for the videos
-# Which DO show the viewer how much $ it made
-def append_payment_transparent_video():
-    channelString = str(item('div')[0].contents[0])
-    if (channelString[-1] == " "):
-        channelString.rstrip(" ")
+def make_append():
+    channel_string = str(item('div')[0].contents[0])
+    if channel_string[-1] == " ":
+        channel_string = channel_string.rstrip()
 
     video_details.append([
         str(item('h3')[0].contents[0]),  # Title
-        channelString,  # Channel
-        str(item('span')[0]['data-value']),  # Duration
-        str(item('span')[1]['data-value']),  # Earned
-        str(item('span')[2]['data-value']),  # Views
-        str(item('span')[3]['data-value']),  # Likes
-        str(item('time')[0]['datetime']),  # Uploaded
-    ])
-
-
-# This function appends data for videos which DO NOT show amount of $ earned
-def append_video():
-    channelString = str(item('div')[0].contents[0])
-    if (channelString[-1] == " "):
-        channelString.rstrip()
-
-    print(channelString)
-
-    video_details.append([
-        str(item('h3')[0].contents[0]),  # Title
-        channelString,  # Channel
+        channel_string,  # Channel
         str(item('span')[0]['data-value']),  # Duration
         '0',  # Earned
         str(item('span')[1]['data-value']),  # Views
         str(item('span')[2]['data-value']),  # Likes
+        str(item('time')[0]['datetime']),  # Uploaded
+    ])
+
+
+# Some videos show how much $ they earned while other videos do not
+# This function is used to append video data correctly for the videos
+# Which DO show the viewer how much $ it made
+def make_payment_transparent_append():
+    channel_string = str(item('div')[0].contents[0])
+    if channel_string[-1] == " ":
+        channel_string = channel_string.rstrip(" ")
+
+    video_details.append([
+        str(item('h3')[0].contents[0]),  # Title
+        channel_string,  # Channel
+        str(item('span')[0]['data-value']),  # Duration
+        str(item('span')[1]['data-value']),  # Earned
+        str(item('span')[2]['data-value']),  # Views
+        str(item('span')[3]['data-value']),  # Likes
         str(item('time')[0]['datetime']),  # Uploaded
     ])
 
@@ -83,17 +84,21 @@ def append_video():
 urlStringFirstPage = 'https://rumble.com/videos?sort=views&date=this-month'
 urlStringNumberedPage = 'https://rumble.com/videos?sort=views&date=this-month&page='
 
+# video_details is the list which will later be turned into the main panda dataframe
 video_details = []
+
 # Rumble's first page is index 1 and the max amount of pages it shows is 100
 number_of_pages = 100
 
+# channel will store {channel_name : channel_subscriber_count} K:V Pairs
 channel = {}
+
 browser = mechanicalsoup.StatefulBrowser(soup_config={'features': 'lxml'})
 
-# Since videos are not all available on a single pages,
+# Since videos are not all available on a single page,
 # we use a loop to scrape data from all pages
 # for page in range(1,(number_of_pages + 1)):
-for page in range(1, 11):
+for page in range(1, 6):
     if page == 1:
         urlString = urlStringFirstPage
     else:
@@ -103,7 +108,7 @@ for page in range(1, 11):
     # it is needed for following links to channel pages, scraping subscriber count
     # from those pages, and going back to the url on line 11
     browser.open(urlString)
-    print(Fore.WHITE + Style.BRIGHT + browser.get_url())
+    print(Fore.WHITE + Style.BRIGHT + "SCRAPING:" + browser.get_url())
 
     html = requests.get(urlString).text
     soup = BeautifulSoup(html, 'html.parser')
@@ -112,35 +117,32 @@ for page in range(1, 11):
         try:
             if item['class'][0] == "video-item":
                 if item('span')[1]['class'][1] == 'video-item--earned':
-                    append_payment_transparent_video()
+                    # Some videos show how much $ they earned
+                    # They are treated differently from other videos
+                    make_payment_transparent_append()
                 else:
-                    append_video()
+                    make_append()
 
+            # This is a check for a nasty surprise whitespace at the end of the string
+            # Where it doesnt belong (Caused problems before)
             channel_name = str(item('div')[0].contents[0])
-
-            if (channel_name[-1] == " "):
-                channel_name.rstrip()
-
-            print(channel_name)
+            if channel_name[-1] == " ":
+                channel_name = channel_name.rstrip()
 
             check_key_channel(channel, channel_name)
         except:
             pass
-        # time.sleep(0.25)
 
 videopd = pd.DataFrame(video_details, columns=['Title', 'Channel', 'Duration', 'Earned', 'Views', 'Likes', 'Uploaded'])
 channelpd = pd.DataFrame.from_dict(channel)
 
-print(channel)
-
+# Below loop runs through video dataframe, selects channels,
+# and appends the channel's subscriber count to sub_list
 sub_list = []
 for i, j in videopd.iterrows():
     try:
         given_channel = j['Channel']
         print(Fore.BLUE + Style.BRIGHT + given_channel)
-        # print(i, j)
-        # print(Fore.MAGENTA + channel[given_channel][0])
-        # sub_list.append(channel['The Post Millennial Clips'])
         sub_list.append(channel[given_channel][0])
     except Exception as e:
         print(e)
@@ -148,8 +150,12 @@ for i, j in videopd.iterrows():
         print(i, j)
         pass
 
+# We add subscribers column to video dataframe
 videopd['Subscribers'] = sub_list
 
 print()
 print()
 print(Fore.GREEN + Style.BRIGHT + "PROGRAM COMPLETE...")
+
+# Write out to csv file
+videopd.to_csv("DataSciCA2Data8Columns.csv")
