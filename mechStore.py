@@ -34,8 +34,8 @@ def redirect_scrape_return():
     browser.open(urlString)
 
 
-# This function checks is key:value pair already exists,
-# If not, it calls the redirector function
+# This function checks is key:calue pair already exists,
+# If not, it calls the redirector fuction
 def check_key_channel(dic, key):
     if key in dic:
         print(Style.BRIGHT + Fore.YELLOW + key + " : Already Exists")
@@ -50,6 +50,7 @@ def make_append():
         channel_string = channel_string.rstrip()
 
     video_details.append([
+        int(counter),  # Rank
         str(item('h3')[0].contents[0]),  # Title
         channel_string,  # Channel
         str(item('span')[0]['data-value']),  # Duration
@@ -69,6 +70,7 @@ def make_payment_transparent_append():
         channel_string = channel_string.rstrip(" ")
 
     video_details.append([
+        int(counter),  # Rank
         str(item('h3')[0].contents[0]),  # Title
         channel_string,  # Channel
         str(item('span')[0]['data-value']),  # Duration
@@ -95,6 +97,8 @@ number_of_pages = 50
 channel = {}
 
 browser = mechanicalsoup.StatefulBrowser(soup_config={'features': 'lxml'})
+
+counter = 1
 
 # Since videos are not all available on a single page,
 # we use a loop to scrape data from all pages
@@ -123,17 +127,21 @@ for page in range(1, (number_of_pages + 1)):
                 else:
                     make_append()
 
+            counter = counter + 1
+
             # This is a check for a nasty surprise whitespace at the end of the string
-            # Where it doesn't belong (Caused problems before)
+            # Where it doesnt belong (Caused problems before)
             channel_name = str(item('div')[0].contents[0])
             if channel_name[-1] == " ":
                 channel_name = channel_name.rstrip()
 
             check_key_channel(channel, channel_name)
+
         except:
             pass
 
-videopd = pd.DataFrame(video_details, columns=['Title', 'Channel', 'Duration', 'Earned', 'Views', 'Likes', 'Uploaded'])
+videopd = pd.DataFrame(video_details,
+                       columns=['Rank', 'Title', 'Channel', 'Duration', 'Earned', 'Views', 'Likes', 'Uploaded'])
 channelpd = pd.DataFrame.from_dict(channel)
 
 # Below loop runs through video dataframe, selects channels,
