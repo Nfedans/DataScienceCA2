@@ -63,7 +63,7 @@ for page in range(1, (number_of_pages + 1)):
             pass
         time.sleep(0.5)
 
-videopd = pd.DataFrame(video_details, columns=['Title', 'Channel', 'Duration', 'Earned', 'Views', 'Likes', 'Uploaded'])
+videopandadf = pd.DataFrame(video_details, columns=['Title', 'Channel', 'Duration', 'Earned', 'Views', 'Likes', 'Uploaded'])
 
 # Write out to csv file
 videopd.to_csv("DataSciCA2Data.csv")
