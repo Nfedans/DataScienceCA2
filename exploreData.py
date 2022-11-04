@@ -1,5 +1,5 @@
 # Data gives details of all videos which made it to the top 50 pages of the month on rumble.com
-# Variables: index, title, channel, duration, $ earned, views, Likes, upload date, and channel subscriber count.
+# Variables: Rank, title, channel, duration, $ earned, views, Likes, upload date, and channel subscriber count.
 
 #Response (Dependent) variable is "Rank"
 
@@ -43,6 +43,7 @@ import matplotlib.pyplot as plt
 from matplotlib.pyplot import figure
 
 import re
+# below 2 imports to fine tune my graphs
 import matplotlib.ticker as mtick
 from matplotlib.ticker import FuncFormatter
 
@@ -54,7 +55,7 @@ print(cwd)
 os.chdir("C:/Users/nfeda/OneDrive - Dundalk Institute of Technology/Y3/Data Science/CA2")
 
 # Read the data set of "Marketing Analysis" in data.
-data= pd.read_csv("DataSciCA2Data8Columns.csv")
+data= pd.read_csv("data.csv")
 
 
 #1. DATA TYPES    ########################################################
@@ -82,8 +83,7 @@ summaryNumerical = data.describe()
 
 #2. DATA CLEANING ########################################################
 
-#passed_num
-
+# This function takes values such as 41.5K and turns them into 41500 & 5M becomes 5000000
 def format_numbers(passed_num):
     passed_num = passed_num.casefold()
     passed_num = passed_num.translate({ord(','): None})
@@ -95,18 +95,18 @@ def format_numbers(passed_num):
             passed_num = 1000000 * float(passed_num)
     return int(passed_num)
 
+# This functions takes both the HH:MM:SS and MM:SS time formats and turns into seconds
 def get_sec(time_str):
-    #print(time_str)
+    print(time_str)
     contains_min_sec_time = re.search("^(([0]?[0-5][0-9]|[0-9]):([0-5][0-9]))$", time_str)
-    #contains_hh_mm_ss_time = re.search("^(?:(?:([01]?\d|2[0-3]):)?([0-5]?\d):)?([0-5]?\d)$", time_str)
     if(contains_min_sec_time):
         time_str = '00:' + time_str
-    elif(time_str == 'LIVE'):
+    elif(time_str == 'LIVE' or time_str == 'DVR'):
         return -1
     h, m, s = time_str.split(':')
     return int(h) * 3600 + int(m) * 60 + int(s)
 
-# Drop the video title as it will not be used for analysis.
+# Drop the video title column as it will not be used for analysis.
 data.drop('Title', axis = 1, inplace = True)
 
 # Drop the earnings column title as most channels do not include this, it is useless.
@@ -115,13 +115,13 @@ data.drop('Earned', axis = 1, inplace = True)
 # Drop redundant index
 data.drop('Unnamed: 0', axis = 1, inplace = True)
 
-# Make DURATION into a manipulatible format (seconds)
+# Make DURATION into a manipulateable format (seconds)
 data['Duration Seconds'] = data['Duration'].apply(lambda x: get_sec(x))
 
 # # Delete all videos with duration LIVE (-1 in Duration Seconds Column)
 data.drop(data[data['Duration Seconds'] == -1].index, inplace = True)
 
-# reset index & delete old index
+# reset index & delete old index (Index of panda dataframe should not be tied to video rank)
 data = data.reset_index()
 data.drop('index', axis = 1, inplace = True)
 
@@ -131,16 +131,13 @@ data['Views'] = data['Views'].apply(lambda x: int(x.translate({ord(','): None}))
 # Format thousand and millions properly for LIKES and for SUBSCRIBERS and cast as ints
 data['Likes'] = data['Likes'].apply(lambda like_count: format_numbers(like_count))
 data['Subscribers'] = data['Subscribers'].apply(lambda subs: format_numbers(subs))
-
-# Check / Make UPLOADED a manipulatable format
-
 data.info()
 
 
 #3. MISSING VALUES ######################################################
 
 
-# Checking the missing values
+# Checking the missing values (all clear)
 numberMissing=data.isnull().sum()
 
 
@@ -175,8 +172,9 @@ data.Likes.describe()
 # watch it and participate in the giveaway, so people who generally do not use
 # Rumble may have heard about it and watched and liked just to participate
 
-# The top result is  74.6k likes
-data = data.drop(data[data.Likes == 74600].index)
+# The top result is  74.6k likes, and it's getting deleted
+data_max = data.Likes.max()
+data = data.drop(data[data.Likes == data_max].index)
 
 figure(num=None, figsize=(8, 6), dpi=80, facecolor='w', edgecolor='k')
 plt.boxplot(x=data.Likes)
@@ -202,9 +200,9 @@ number_channel_vids = data.Channel.value_counts()
 
 fig, ax = plt.subplots(figsize=(3, 4.5),  dpi=163)
 # there are 233 channels that have their videos in the top 50
-ax.set_ylim([0, 233])
+ax.set_ylim([0, len(channel_details)])
 # this is for the percentage ticks on the y axis
-rng = np.arange(0, 240, 11.65)
+rng = np.arange(0, len(channel_details) + 10, len(channel_details)/20)
 ax.set_yticks(rng)
 ax.hist(number_channel_vids, bins=range(0, 90, 5))
 ax.set_title("")
@@ -214,8 +212,8 @@ ax.set_xlabel("amount of videos")
 # Secondary axis, this one will be on the right, number format
 secax = ax.twinx()
 secax.hist(number_channel_vids, bins=range(0, 90, 5))
-secax.set_ylim([0, 233])
-secrng = np.arange(0, 240, 10)
+secax.set_ylim([0, len(channel_details)])
+secrng = np.arange(0, len(channel_details) + 10, 10)
 secax.set_yticks(secrng)
 # Format ax y axis as pecentage values
 ax.yaxis.set_major_formatter(mtick.PercentFormatter(xmax=len(number_channel_vids)))
@@ -228,7 +226,7 @@ plt.show()
 # of your videos to make it to the top 50.
 
 
-
+# This is a scatterplot of Likes, it provides an alternative way to visualize the data, compared to boxplots.
 figure(num=None, figsize=(10, 10), dpi=80, facecolor='w', edgecolor='k')
 plt.scatter(data.index, data['Likes'])
 plt.title("Scatterplot of likes")
@@ -247,11 +245,11 @@ data.Likes.describe()
 # max      42000.000000
 
 # SUMMARY STATEMENT:
-# 3 in 4 videos that make it to the top 50 have fewer that 2250 likes, but the average is 2322
-# as some videos have enormous amounts of likes, with the most like video having over 42000 likes.
+# 3 in 4 videos that make it to the top 50 have fewer than 2250 likes, but the average is 2322
+# as some videos have enormous amounts of likes, with the most like video having over 42000 likes, skewing our results.
 
 
-
+# This is a scatter plot of View, it provides an alternative way to visualize the data, compared to boxplots.
 figure(num=None, figsize=(10, 10), dpi=80, facecolor='w', edgecolor='k')
 plt.scatter(data.index, data['Views'])
 plt.title("Scatterplot of views")
@@ -275,6 +273,9 @@ data.Views.describe()
 # The average (mean) amount of views in the top 50 pages worth of videos is just over 60,000, If you want a chance to land
 # in the top 50 pages, your video needs over 24,000 views minimum. The most viewed video has close to 2.5 million views.
 
+
+# This is a scatter plot of channel subscribers, no matter if a channel has 1 or 80 of their videos in the top 50 pages
+# Their channel is included only once
 unique_subs = data.Subscribers.unique()
 subdf = pd.DataFrame(unique_subs, columns = ['Subs'])
 
@@ -306,10 +307,11 @@ subdf.median()
 
 
 
-
+# This is a histogram which shows how many / what percentage of videos in the top 50 pages
+# are under 5 minutes, between 5 and 10 minutes etc
 fig, ax = plt.subplots(figsize=(12, 8),  dpi=163)
 ax.hist(data['Duration Seconds'], bins=range(0, 54400, 300))
-ax.set_ylim([0, 430])
+ax.set_ylim([0, len(data['Views'])/2])
 ax.set_title("Histogram of Video lengths")
 ax.set_ylabel("percentage of all videos")
 ax.set_xlabel("hours (each bar = 5 minutes)")
@@ -318,12 +320,14 @@ ax.set_xlabel("hours (each bar = 5 minutes)")
 secax = ax.twinx()
 # 300 seconds = 5 minutes
 secax.hist(data['Duration Seconds'], bins=range(0, 54400, 300))
-secax.set_ylim([0, 430])
+secax.set_ylim([0, len(data['Views'])/2])
+sec_rng = rng = np.arange(0, len(data['Views'])/2, 50)
+secax.set_yticks(sec_rng)
 secax.set_ylabel("Amount of videos")
 
 # format y axis as percentages, going up in 2.5% inervals
 ax.yaxis.set_major_formatter(mtick.PercentFormatter(xmax=len(data['Duration Seconds'])))
-rng = np.arange(0, 430, 30.525)
+rng = np.arange(0, len(data['Views'])/2, len(data['Views'])/50)
 ax.set_yticks(rng)
 xrng = np.arange(0, 54400, 3600)
 ax.set_xticks(xrng)
@@ -361,8 +365,7 @@ data['Duration Seconds'].describe()
 
 #6. EXPLORATORY DATA ANALYSIS - BIVARIATE ANALYSIS ############################################
 
-####Numeric - numeric analysis for two variables where both are numeric
-
+####Numeric
 
 #plot the scatter plot of views and likes variable in data
 figure(num=None, figsize=(8, 8), dpi=163, facecolor='w', edgecolor='k')
@@ -438,10 +441,8 @@ plt.show()
 
 
 #####Numeric - Categorical Analysis
-#Analyzing the one numeric variable and one categorical variable from a dataset is known as numeric-categorical analysis.
-#We analyze them mainly using mean, median, and box plots.
-#Investigate salary and response columns from our dataset.
 
+# this is a chart showing boxplots of likes for each individual channel
 figure(num=None, figsize=(32, 32), dpi=160, facecolor='w', edgecolor='k')
 mean_likes_per_channel=data.groupby('Channel')['Likes'].mean()
 data.groupby('Channel')['Likes'].median()
@@ -459,15 +460,10 @@ plt.show()
 # While some channels may have highly varying amounts of likes for their videos, generally
 # Speaking there are not many outliers per channel, unlike when looking at a boxplot of likes overall
 # Which shows quite a lot of outliers, this means the same channels get large amounts of likes all the time
-# Making them seem as "Outlier creators."
+# Making them seem as "Outlier creators" compared to the rest of the channels on rumble.
 
 
 #7. EXPLORATORY DATA ANALYSIS - Multivariate ANALYSIS ############################################
-
-
-#If we analyze data by taking more than two variables/columns into consideration from a dataset, it is known as Multivariate Analysis.
-#Let’s investigate how ‘Education’, ‘Marital’, and ‘Response_rate’ vary with each other.
-#First, we’ll create a pivot table with the three columns and after that, we’ll create a heatmap.
 
 #Pivot table automatically uses the mean value of the response_rate argument.
 result = pd.pivot_table(data=data, index='Views', columns='Likes',values='Subscribers')
@@ -478,8 +474,8 @@ figure(num=None, figsize=(8, 8), dpi=80, facecolor='w', edgecolor='k')
 sns.heatmap(result, annot=True, cmap = 'RdYlGn', center=0.117)
 plt.show()
 
-#Based on the Heatmap we can infer that the married people with primary education are less likely to respond positively for the survey and single people with tertiary education are most likely to respond positively to the survey.
-#Similarly, we can plot the graphs for Job vs marital vs response, Education vs poutcome vs response, etc.
+# SUMMARY STATEMENT:
+# This graph is no good, but by pure chance it looks like a face (if using my data file), which is useless but an interesting outcome nonetheless.
 
 
 
