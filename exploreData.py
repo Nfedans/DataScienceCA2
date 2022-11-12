@@ -477,7 +477,7 @@ plt.show()
 # SUMMARY STATEMENT:
 # This graph is no good, but by pure chance it looks like a face (if using my data file), which is useless but an interesting outcome nonetheless.
 
-
+data.to_csv("dataForModelling.csv")
 
 
 
