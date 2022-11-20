@@ -14,7 +14,13 @@ from collections import Counter
 #
 #                         IMPORTANT CHANGES
 # Video RANK is no longer my response variable, I am instead predicting VIEWS
+# This doesn't change much however as my points about outside businesses looking for
+# Influencers to advertise their products, would want their advertisement to have many
+# Views, and a video ranking highly, pretty much means it is getting a lot of views currently.
 #
+# Rumble creator's goal to rank highly / get many views is also similar in nature
+# Therefore, the business understanding still applies regradless if i am trying to
+# predict views or video rank.
 #
 
 # DATA IMPORT########################################################
@@ -170,6 +176,32 @@ plt.show()
 
 ###############REGRESSION MODELLING######################################
 
+
+# Strength of variables correlating to views
+# 1) Rank (-0.58)
+#    Explanation: if videos were ranked solely by view count on Rumble, a mega viral video that came out 2 years ago might top the ranking
+#    Even though a video released one week ago might be gaining views at a much greater rate than this old viral video, the new video
+#    may not even appear in the rankings in this scenario. Rumble may rank a video with 10000 views released 10 minutes ago higher than
+#    a video with 1 million views released 3 weeks ago. This explains the substantial negative correlation.
+#
+# 2) Likes (0.33)
+#    Explanation: The more views a video has, the more likes it may have.
+#
+# 3) Duration seconds (0.11)
+#    Explanation: Longer videos get more views.
+#
+# 4) Bongino Report (Channel) (-0.1)
+#
+# 5) X22 report (Channel) (0.083)
+#
+# 6) Subscribers (0.081)
+#    Explanation: The more subscribers a channel has the more views, but the correlation isn't very strong.
+#
+# 7) Other channel (0.076)
+#
+# 8) the gateway pundit (Channel) (-0.063)
+
+
 #########Regression Modelling - Step 1: Split Data into Train and Test
 
 # Set the Response and the predictor variables
@@ -197,6 +229,9 @@ model2 = LinearRegression()
 model3 = LinearRegression()
 model4 = LinearRegression()
 model5 = LinearRegression()
+model6 = LinearRegression()
+model7 = LinearRegression()
+model8 = LinearRegression()
 
 # Fit the variables in order of strongest correlation with Price and calculate adjusted R squared at each step.
 
@@ -282,18 +317,18 @@ print("Rsquared Regression Model with Rank and Likes and duration seconds: " + s
 print("Rsquared Adjusted Regression Model with Rank and Likes and duration seconds: " + str(Rsquared_adj3))
 
 # Model 4 - Next add the AvgAreaNumberRooms
-model4.fit(x_train[['Rank', 'Likes', 'Duration Seconds', 'Subscribers']], y_train)
+model4.fit(x_train[['Rank', 'Likes', 'Duration Seconds', 'Chnl BonginoReport']], y_train)
 # Show the model parameters
 print(model4.coef_)
 print(model4.intercept_)
 # So Price = ??
 
 # A nicer way to view the coefficients is by placing them in a DataFrame. This can be done with the following statement:
-Output = pd.DataFrame(model4.coef_, ['Rank', 'Likes', 'Duration Seconds', 'Subscribers'], columns=['Coeff'])
+Output = pd.DataFrame(model4.coef_, ['Rank', 'Likes', 'Duration Seconds', 'Chnl BonginoReport'], columns=['Coeff'])
 print(Output)
 
 # Generate predictions for the training data
-predictions_train = model4.predict(x_train[['Rank', 'Likes', 'Duration Seconds', 'Subscribers']])
+predictions_train = model4.predict(x_train[['Rank', 'Likes', 'Duration Seconds', 'Chnl BonginoReport']])
 
 prediction_sum_sq_errors = sum((predictions_train - y_train) ** 2)
 
@@ -302,23 +337,24 @@ Rsquared4 = 1 - prediction_sum_sq_errors / raw_sum_sq_errors
 N = 814
 p = 4  # Four predictors used
 Rsquared_adj4 = 1 - (1 - Rsquared4) * (N - 1) / (N - p - 1)
-print("Rsquared Regression Model with Subscribers: " + str(Rsquared4))
-print("Rsquared Adjusted Regression Model with Subscribers: " + str(Rsquared_adj4))
+print("Rsquared Regression Model with Chnl BonginoReport: " + str(Rsquared4))
+print("Rsquared Adjusted Regression Model with Chnl BonginoReport: " + str(Rsquared_adj4))
 
 # Model 5 - Next add the AvgAreaNumberBedrooms
-model5.fit(x_train[['Rank', 'Likes', 'Duration Seconds', 'Subscribers', 'days uploaded']], y_train)
+model5.fit(x_train[['Rank', 'Likes', 'Duration Seconds', 'Chnl BonginoReport', 'Chnl X22 Report']], y_train)
 # Show the model parameters
 print(model5.coef_)
 print(model5.intercept_)
 # So Price = ??
 
 # A nicer way to view the coefficients is by placing them in a DataFrame. This can be done with the following statement:
-Output = pd.DataFrame(model5.coef_, ['Rank', 'Likes', 'Duration Seconds', 'Subscribers', 'days uploaded'],
+Output = pd.DataFrame(model5.coef_, ['Rank', 'Likes', 'Duration Seconds', 'Chnl BonginoReport', 'Chnl X22 Report'],
                       columns=['Coeff'])
 print(Output)
 
 # Generate predictions for the training data
-predictions_train = model5.predict(x_train[['Rank', 'Likes', 'Duration Seconds', 'Subscribers', 'days uploaded']])
+predictions_train = model5.predict(
+    x_train[['Rank', 'Likes', 'Duration Seconds', 'Chnl BonginoReport', 'Chnl X22 Report']])
 
 prediction_sum_sq_errors = sum((predictions_train - y_train) ** 2)
 
@@ -327,11 +363,98 @@ Rsquared5 = 1 - prediction_sum_sq_errors / raw_sum_sq_errors
 N = 814
 p = 5  # Five predictors used
 Rsquared_adj5 = 1 - (1 - Rsquared5) * (N - 1) / (N - p - 1)
-print("Rsquared Regression Model with days uploaded: " + str(Rsquared5))
-print("Rsquared Adjusted Regression Model with days uploaded: " + str(Rsquared_adj5))
+print("Rsquared Regression Model with Chnl X22 Report: " + str(Rsquared5))
+print("Rsquared Adjusted Regression Model with Chnl X22 Report: " + str(Rsquared_adj5))
 
 # So based on the Adjusted R Squared value my bext model is Model 5 which includes everything bar the channel variables
 # Price = ??
+
+
+# Model 6 - Next add the Subscribers
+model6.fit(x_train[['Rank', 'Likes', 'Duration Seconds', 'Chnl BonginoReport', 'Chnl X22 Report', 'Subscribers']],
+           y_train)
+# Show the model parameters
+print(model6.coef_)
+print(model6.intercept_)
+# So Price = ??
+
+# A nicer way to view the coefficients is by placing them in a DataFrame. This can be done with the following statement:
+Output = pd.DataFrame(model6.coef_,
+                      ['Rank', 'Likes', 'Duration Seconds', 'Chnl BonginoReport', 'Chnl X22 Report', 'Subscribers'],
+                      columns=['Coeff'])
+print(Output)
+
+# Generate predictions for the training data
+predictions_train = model6.predict(
+    x_train[['Rank', 'Likes', 'Duration Seconds', 'Chnl BonginoReport', 'Chnl X22 Report', 'Subscribers']])
+
+prediction_sum_sq_errors = sum((predictions_train - y_train) ** 2)
+
+Rsquared6 = 1 - prediction_sum_sq_errors / raw_sum_sq_errors
+
+N = 814
+p = 6  # Five predictors used
+Rsquared_adj6 = 1 - (1 - Rsquared6) * (N - 1) / (N - p - 1)
+print("Rsquared Regression Model with Subscribers: " + str(Rsquared6))
+print("Rsquared Adjusted Regression Model with Subscribers: " + str(Rsquared_adj6))
+
+# Model 7 - Next add the Other Chnl
+model7.fit(x_train[['Rank', 'Likes', 'Duration Seconds', 'Chnl BonginoReport', 'Chnl X22 Report', 'Subscribers',
+                    'Other Chnl']], y_train)
+# Show the model parameters
+print(model7.coef_)
+print(model7.intercept_)
+# So Price = ??
+
+# A nicer way to view the coefficients is by placing them in a DataFrame. This can be done with the following statement:
+Output = pd.DataFrame(model7.coef_,
+                      ['Rank', 'Likes', 'Duration Seconds', 'Chnl BonginoReport', 'Chnl X22 Report', 'Subscribers',
+                       'Other Chnl'], columns=['Coeff'])
+print(Output)
+
+# Generate predictions for the training data
+predictions_train = model7.predict(x_train[
+                                       ['Rank', 'Likes', 'Duration Seconds', 'Chnl BonginoReport', 'Chnl X22 Report',
+                                        'Subscribers', 'Other Chnl']])
+
+prediction_sum_sq_errors = sum((predictions_train - y_train) ** 2)
+
+Rsquared7 = 1 - prediction_sum_sq_errors / raw_sum_sq_errors
+
+N = 814
+p = 7  # Five predictors used
+Rsquared_adj7 = 1 - (1 - Rsquared7) * (N - 1) / (N - p - 1)
+print("Rsquared Regression Model with Other Chnl: " + str(Rsquared7))
+print("Rsquared Adjusted Regression Model with Other Chnl: " + str(Rsquared_adj7))
+
+# Model 8 - Next add the Chnl The Gateway Pundit
+model8.fit(x_train[['Rank', 'Likes', 'Duration Seconds', 'Chnl BonginoReport', 'Chnl X22 Report', 'Subscribers',
+                    'Other Chnl', 'Chnl The Gateway Pundit']], y_train)
+# Show the model parameters
+print(model8.coef_)
+print(model8.intercept_)
+# So Price = ??
+
+# A nicer way to view the coefficients is by placing them in a DataFrame. This can be done with the following statement:
+Output = pd.DataFrame(model8.coef_,
+                      ['Rank', 'Likes', 'Duration Seconds', 'Chnl BonginoReport', 'Chnl X22 Report', 'Subscribers',
+                       'Other Chnl', 'Chnl The Gateway Pundit'], columns=['Coeff'])
+print(Output)
+
+# Generate predictions for the training data
+predictions_train = model8.predict(x_train[
+                                       ['Rank', 'Likes', 'Duration Seconds', 'Chnl BonginoReport', 'Chnl X22 Report',
+                                        'Subscribers', 'Other Chnl', 'Chnl The Gateway Pundit']])
+
+prediction_sum_sq_errors = sum((predictions_train - y_train) ** 2)
+
+Rsquared8 = 1 - prediction_sum_sq_errors / raw_sum_sq_errors
+
+N = 814
+p = 8  # Five predictors used
+Rsquared_adj8 = 1 - (1 - Rsquared8) * (N - 1) / (N - p - 1)
+print("Rsquared Regression Model with Chnl The Gateway Pundit: " + str(Rsquared8))
+print("Rsquared Adjusted Regression Model with Chnl The Gateway Pundit: " + str(Rsquared_adj8))
 
 # Interesting to plot the errors for the actual values
 plt.scatter(y_train, predictions_train)
@@ -366,8 +489,22 @@ figure(num=None, figsize=(8, 8), dpi=80, facecolor='w', edgecolor='k')
 plt.scatter(y_test, predictions_test - y_test)
 plt.show()
 
-#### PROBLEMS TO BRING UP TO KEVIN
+# Feedback from Kevin
+# Answer: Run it a number of times, maybe 1000, and pick out the best model as the median value, cant do mean
+# Since you need to run with an actual generated model
 
-# 1) the regression model for views got the greatest ever result of ~45 for both rsquared and adjusted, is the model ok?
-# 2) Should channel variables be included within regression modelling
-# 3) The best model isnt consistent, but usually model5, why? is this bad?
+# The reason rsquared is jumping around is because at the end i add a weakly correlated variable which sometimes improves the model
+# but other times does not
+
+# If i leave a detailed note as to why i ran this script 1000 times and got a median best, since the rsquared jumps around
+# i can get some extra marks
+
+# Include the channel variable if they improve the model
+
+# Explain why rank has such a negative correlation with views for some extra marks in a note
+
+# put down final equation with ccoefficients and intercept in comment for extra marks
+
+# Explain correlations for extra points
+
+# include error vs valuable plots and see if random for extra marks
